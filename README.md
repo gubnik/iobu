@@ -1,16 +1,13 @@
 # iobu
 
-Iobu (I/O Buffers) is a library providing concepts and generic utilities for operating
-on buffers. A buffer is a contiguous region of memory, and `iobu` ensures that any way the programmer
-chooses to provide such a region of memory, the utilities for operating on them stay the same.
+IOBU is an independent library providing generic buffer utilities.
 
-Iobu aims to be compatible with as many STL and 3rd-party buffer-like facilities as possible via its
-open set of structural of concepts. Out of the box, the following types (and more) and considered buffer types in Iobu:
-- `std::vector<std::uint8_t>`
-- `std::span<std::byte>`
+In IOBU, a buffer is simply a pointer and a length, thus any type that exposes these components is suited to
+work with IOBU. Such types include, among others:
 - `std::string`
-- `boost::capy::mutable_buffer` and `boost::capy::const_buffer`
-- `boost::asio::mutable_buffer` and `boost::asio::const_buffer`
+- `std::span<std::byte>`
+- `std::vector<uint8_t>`
+- Asio and Capy `mutable_buffer` and `const_buffer`
 
-Iobu also inherits the notion of _buffer sequences_ from Asio, making something like `std::vector<std::string>`
-a supported buffer type by default. No conversions needed at the call site, no `std::ranges::views` magic.
+IOBU inherits the notion of *buffer sequences* from Asio: a buffer sequence is either a single buffer, or a bidirectional range of buffers.
+All IOBU utilities are designed to work for buffer sequences.
