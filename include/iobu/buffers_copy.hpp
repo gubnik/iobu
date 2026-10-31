@@ -12,8 +12,9 @@ namespace iobu
 constexpr struct
 {
     template <read_buffer_sequence RdBufSeqTy, write_buffer_sequence WrBufSeqTy>
-    auto operator()(RdBufSeqTy const &read_buffers, WrBufSeqTy &write_buffers,
-                    std::size_t at_most = std::numeric_limits<std::size_t>::max()) const noexcept
+    constexpr auto
+    operator()(RdBufSeqTy const &read_buffers, WrBufSeqTy &write_buffers,
+               std::size_t at_most = std::numeric_limits<std::size_t>::max()) const noexcept
         -> std::size_t
     {
         std::size_t total{};
@@ -58,5 +59,7 @@ constexpr struct
         return total;
     }
 } buffers_copy;
+
+constexpr auto bufcpy = buffers_copy;
 
 } // namespace iobu
