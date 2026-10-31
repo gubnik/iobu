@@ -64,7 +64,7 @@ template <read_buffer_source_iterator IterTy> class read_buffer_iterator
         {
             return {nullptr, 0};
         }
-        return {static_cast<std::uint8_t const *>(buf.data()) + slice_start,
+        return {reinterpret_cast<std::uint8_t const *>(buf.data()) + slice_start,
                 slice_end - slice_start};
     }
 

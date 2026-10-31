@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.13...3.31)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-#option(IOBU_BUILD_EXAMPLES )
+option(IOBU_BUILD_EXAMPLES "Build IOBU examples" OFF)
+
+if(IOBU_BUILD_EXAMPLES)
+    list(APPEND VCPKG_MANIFEST_FEATURES "examples")
+endif()
 
 project(
   iobu

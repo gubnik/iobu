@@ -16,7 +16,7 @@ constexpr struct
     constexpr auto
     operator()(RdBufSeqTy const &read_buffers, std::size_t offset = 0,
                std::size_t length = std::numeric_limits<std::size_t>::max()) const noexcept
-        -> read_buffer_sequence auto
+        -> buffers_view<RdBufSeqTy>
     {
         auto const rd_beg = read_buffers_begin(read_buffers);
         auto const rd_end = read_buffers_begin(read_buffers);

@@ -25,6 +25,15 @@
                     "host": true
                 }
             ]
+        },
+        "examples": {
+            "description": "Build the examples",
+            "dependencies": [
+                {
+                    "name": "asio",
+                    "host": true
+                }
+            ]
         }
     },
     "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
