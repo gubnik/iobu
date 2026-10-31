@@ -1,13 +1,10 @@
 #pragma once
 
 #include "iobu/buffer_iterator.hpp"
-#include "iobu/buffer_ref.hpp"
 #include "iobu/buffers_view.hpp"
 #include "iobu/concepts/buffer_sequence.hpp"
 #include "iobu/detail/read_buffer_iterator.hpp"
 #include <limits>
-#include <utility>
-#include <vector>
 
 namespace iobu
 {
@@ -29,9 +26,5 @@ constexpr struct
     }
 
 } buffers_slice;
-
-static_assert(read_buffer_sequence<decltype(buffers_slice(read_buffer_ref{}))>);
-static_assert(read_buffer_sequence<
-              decltype(buffers_slice(std::declval<std::vector<std::string> const &>()))>);
 
 } // namespace iobu

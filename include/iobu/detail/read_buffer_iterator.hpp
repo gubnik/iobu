@@ -68,28 +68,28 @@ template <read_buffer_source_iterator IterTy> class read_buffer_iterator
                 slice_end - slice_start};
     }
 
-    read_buffer_iterator &operator++() noexcept
+    auto operator++() noexcept -> read_buffer_iterator &
     {
         m_bytes_seen += std::size_t((*m_current).size());
         ++m_current;
         return *this;
     }
 
-    read_buffer_iterator operator++(int) noexcept
+    auto operator++(int) noexcept -> read_buffer_iterator
     {
         auto old = *this;
         ++*this;
         return old;
     }
 
-    read_buffer_iterator &operator--() noexcept
+    auto operator--() noexcept -> read_buffer_iterator &
     {
         --m_current;
         m_bytes_seen -= std::size_t((*m_current).size());
         return *this;
     }
 
-    read_buffer_iterator operator--(int) noexcept
+    auto operator--(int) noexcept -> read_buffer_iterator
     {
         auto old = *this;
         --*this;
