@@ -30,13 +30,13 @@ concept read_buffer_data_pointer =
 } // namespace detail
 
 template <typename Ty>
-concept write_buffer_compatible = requires(Ty buf) {
+concept write_buffer_compatible = requires(Ty &buf) {
     { buf.data() } noexcept -> detail::write_buffer_data_pointer;
     { buf.size() } noexcept -> std::convertible_to<std::size_t>;
 };
 
 template <typename BufTy>
-concept read_buffer_compatible = write_buffer_compatible<BufTy> or requires(BufTy const buf) {
+concept read_buffer_compatible = write_buffer_compatible<BufTy> or requires(BufTy const &buf) {
     { buf.data() } noexcept -> detail::read_buffer_data_pointer;
     { buf.size() } noexcept -> std::convertible_to<std::size_t>;
 };

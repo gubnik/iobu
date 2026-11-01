@@ -53,11 +53,20 @@ constexpr struct
     }
 
     template <read_buffer_sequence BufSeqTy>
+        requires(read_buffer_compatible<BufSeqTy>)
+    constexpr auto operator()(BufSeqTy const &&buffer) const noexcept = delete;
+
+    template <read_buffer_sequence BufSeqTy>
         requires(not read_buffer_compatible<BufSeqTy>)
     constexpr auto operator()(BufSeqTy const &buffers) const noexcept
     {
         return std::ranges::begin(buffers);
     }
+
+    template <read_buffer_sequence BufSeqTy>
+        requires(not read_buffer_compatible<BufSeqTy>)
+    constexpr auto operator()(BufSeqTy const &&buffers) const noexcept = delete;
+
 } read_buffers_begin;
 
 constexpr struct
@@ -70,11 +79,20 @@ constexpr struct
     }
 
     template <read_buffer_sequence BufSeqTy>
+        requires(read_buffer_compatible<BufSeqTy>)
+    constexpr auto operator()(BufSeqTy const &&buffer) const noexcept = delete;
+
+    template <read_buffer_sequence BufSeqTy>
         requires(not read_buffer_compatible<BufSeqTy>)
     constexpr auto operator()(BufSeqTy const &buffers) const noexcept
     {
         return std::ranges::end(buffers);
     }
+
+    template <read_buffer_sequence BufSeqTy>
+        requires(not read_buffer_compatible<BufSeqTy>)
+    constexpr auto operator()(BufSeqTy const &&buffers) const noexcept = delete;
+
 } read_buffers_end;
 
 } // namespace iobu

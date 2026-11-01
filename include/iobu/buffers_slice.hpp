@@ -25,6 +25,12 @@ constexpr struct
             detail::read_iterator_end(rd_end, offset, length)};
     }
 
+    template <read_buffer_sequence RdBufSeqTy>
+    constexpr auto
+    operator()(RdBufSeqTy const &&read_buffers, std::size_t offset = 0,
+               std::size_t length = std::numeric_limits<std::size_t>::max()) const noexcept
+        -> buffers_view<RdBufSeqTy> = delete;
+
 } buffers_slice;
 
 } // namespace iobu
