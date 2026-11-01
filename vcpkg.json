@@ -1,7 +1,7 @@
 {
-    "name": "cousb",
-    "version": "2.0.0",
-    "description": "Modern C++ library using C++20 coroutines and Boost.Capy to create a lightweight interface for libusb-1.0",
+    "name": "iobu",
+    "version": "1.0.0",
+    "description": "Library-agnostic buffer utilities",
     "license": "BSL-1.0",
     "dependencies": [
         {
