@@ -1,9 +1,9 @@
-# iobu
+# IOBU
 
 IOBU is an independent C++ library providing generic _zero-copy_ buffer utilities. It is compatible with the vast majority
 of STL and 3rd-party buffer-like types, including `std::vector<std::byte>`, `std::string`, `asio::mutable/const_buffer`, `std::span<uint8_t>`.
 No additional conversion operators, no polluting the call site with calls to `make_buffer` or `std::views` adaptors:
-if you have a _buffer-compatible_ type you _deserve_ to use it, no questions asked and no data copied.
+if you have a _buffer-compatible_ type or a _buffer sequence_ - you _deserve_ to use it, no questions asked, and no data copied.
 
 ## Quick start
 
@@ -24,7 +24,7 @@ cmake --build build/x64-linux --config Debug
 
 ### vcpkg
 
-Add a portfile of this library to your ports directory and declare as a dependency as
+Add a portfile of this library to your ports directory and declare it as a dependency as
 ```json
 {
     "name": "iobu"
