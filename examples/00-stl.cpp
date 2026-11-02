@@ -1,4 +1,4 @@
-#include "iobu/buffers_front.hpp"
+#include "iobu/buffers_cat.hpp"
 #include "iobu/buffers_slice.hpp"
 #include "iobu/concepts/buffer_sequence.hpp"
 #include <cstddef>
@@ -18,9 +18,20 @@ int main (int argc, char **argv)
     std::println("Copied: {}", copied);
     std::println("src: {}", src);
     std::println("dest: {}", std::string_view{(char const *)dest.data(), copied});
-    auto first_5 = iobu::buffers_slice(dest, 0, 5);
-    static_assert(iobu::read_buffer_sequence<decltype(first_5)>);
-    auto rd_buf = iobu::buffers_front(first_5);
-    std::println("slice of first 5: {}",
-                 std::string_view{(char const *)rd_buf.data(), rd_buf.size()});
+    auto const cat = iobu::buffers_concatenation(src, dest);
+    for (iobu::read_buffer_ref rb : cat)
+    {
+        std::println("From cat: {}", std::string_view{(char const *)rb.data(), rb.size()});
+    }
+    auto dest_1{dest};
+    std::size_t const n = iobu::bufcpy(cat, dest_1);
+    std::println("Copied from cat: {}",
+                 std::string_view{(char const *)dest_1.data(), dest_1.size()});
+    auto first_15 = iobu::buffers_slice(dest_1, 0, 17);
+    static_assert(iobu::read_buffer_sequence<decltype(first_15)>);
+    for (auto const rd_buf : first_15)
+    {
+        std::println("slice of first 15: {}",
+                     std::string_view{(char const *)rd_buf.data(), rd_buf.size()});
+    }
 }
