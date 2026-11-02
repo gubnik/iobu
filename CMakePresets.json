@@ -31,6 +31,22 @@
             "cacheVariables": {
                 "VCPKG_TARGET_TRIPLET": "x64-linux-static"
             }
+        },
+        {
+            "name": "x64-windows",
+            "inherits": "default",
+            "architecture": {"strategy": "external", "value": "x64"},
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows"
+            }
+        },
+        {
+            "name": "x64-windows-static",
+            "inherits": "default",
+            "architecture": {"strategy": "external", "value": "x64"},
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static"
+            }
         }
     ]
 }
