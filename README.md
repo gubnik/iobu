@@ -1,9 +1,9 @@
 # IOBU
 
-IOBU is an independent C++ library providing generic _zero-copy_ buffer utilities. It is compatible with the vast majority
+IOBU is an independent C++ library providing generic _zero-copy buffer utilities_. It is compatible with the vast majority
 of STL and 3rd-party buffer-like types, including `std::vector<std::byte>`, `std::string`, `asio::mutable/const_buffer`, `std::span<uint8_t>`.
-No additional conversion operators, no polluting the call site with calls to `make_buffer` or `std::views` adaptors:
-if you have a _buffer-compatible_ type or a _buffer sequence_ - you _deserve_ to use it, no questions asked, and no data copied.
+No additional conversion operators, no polluting the call site with additional constructors, calls to `make_buffer` or `std::views` adaptors:
+if you have a _buffer-compatible_ type or a _buffer sequence_ - you _deserve_ to use it directly, no questions asked, and no data copied.
 
 ## Quick start
 
@@ -66,7 +66,7 @@ _no_ read buffer can be treated as a write buffer.
 
 ## Zero-copy and lifetime guarantees
 
-IOBU provides non-owning buffer views enabling extremely effecient zero-copy usage patterns.
+IOBU operates in terms of _non-owning buffer views_ enabling extremely efficient zero-copy usage patterns.
 This, however, requires the caller to keep the underlying storage alive and at a stable address for as long as an operation may access it.
 For asynchronous operations, that usually means keeping the storage alive until completion; using a coroutine-native API such as
 [Boost.Capy](https://github.com/cppalliance/capy) can help organize that lifetime, but does not manage it automatically.
