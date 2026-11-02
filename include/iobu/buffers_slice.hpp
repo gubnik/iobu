@@ -34,8 +34,7 @@ template <read_buffer_sequence RbBufSeqTy> struct buffers_slice final
 
         slicing_iterator() noexcept = default;
 
-        slicing_iterator (buffers_slice const *owner, std::size_t position, bool end = false)
-            : slice{owner}, end{end}
+        slicing_iterator (buffers_slice const *owner, std::size_t position) : slice{owner}
         {
             set_at(position);
         }
@@ -57,7 +56,7 @@ template <read_buffer_sequence RbBufSeqTy> struct buffers_slice final
         {
             if (curr == slice->m_view.end())
             {
-                end = true;
+                position = slice->limit();
                 return *this;
             }
 
@@ -66,7 +65,10 @@ template <read_buffer_sequence RbBufSeqTy> struct buffers_slice final
 
             set_at(std::min(next_position, slice->limit()));
             if (next_position >= slice->limit())
-                end = true;
+            {
+                curr = slice->m_view.end();
+                position = slice->limit();
+            }
             return *this;
         }
 
@@ -125,9 +127,10 @@ template <read_buffer_sequence RbBufSeqTy> struct buffers_slice final
 
         friend bool operator==(slicing_iterator const &a, slicing_iterator const &b) noexcept
         {
-            bool const res = a.slice == b.slice && a.curr == b.curr &&
-                             a.curr_offset == b.curr_offset && a.position == b.position &&
-                             a.end == b.end;
+            bool const res =
+                a.slice == b.slice && a.curr == b.curr && a.curr_offset == b.curr_offset &&
+                a.position == b.position &&
+                ((a.curr == a.slice->m_view.end()) and (b.curr == b.slice->m_view.end()));
             return res;
         }
 
@@ -136,8 +139,8 @@ template <read_buffer_sequence RbBufSeqTy> struct buffers_slice final
         {
             if (requested_position >= slice->limit())
             {
-                end = true;
                 curr = slice->m_view.end();
+                position = slice->limit();
                 return;
             }
 
@@ -171,7 +174,6 @@ template <read_buffer_sequence RbBufSeqTy> struct buffers_slice final
         buffers_slice const *slice{};
         std::size_t curr_offset{0};
         std::size_t position{0};
-        bool end{false};
     };
 
     auto limit () const noexcept -> std::size_t
@@ -191,7 +193,7 @@ template <read_buffer_sequence RbBufSeqTy> struct buffers_slice final
 
     auto end () const noexcept -> slicing_iterator
     {
-        return slicing_iterator{this, limit(), true};
+        return slicing_iterator{this, limit()};
     }
 
   private:
