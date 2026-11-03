@@ -37,6 +37,13 @@ concept read_buffer_data_pointer =
     std::is_pointer_v<PtrTy> && (std::is_const_v<std::remove_pointer_t<PtrTy>>) &&
     buffer_compatible_value<std::remove_pointer_t<PtrTy>>;
 
+template <typename BufTy>
+concept const_indiffirent_data =
+    requires(BufTy ptr) {
+        { ptr.data() } noexcept;
+    } and std::same_as<decltype(std::declval<BufTy const &>().data()),
+                       decltype(std::declval<BufTy &>().data())>;
+
 } // namespace detail
 
 template <typename BufTy>
@@ -50,5 +57,13 @@ concept read_buffer_compatible = write_buffer_compatible<BufTy> or requires(BufT
     { buf.data() } noexcept -> detail::read_buffer_data_pointer;
     { buf.size() } noexcept -> std::convertible_to<std::size_t>;
 };
+
+template <typename BufTy>
+concept pure_write_buffer_handle =
+    write_buffer_compatible<BufTy> and detail::const_indiffirent_data<BufTy>;
+
+template <typename BufTy>
+concept pure_read_buffer_handle =
+    read_buffer_compatible<BufTy> and detail::const_indiffirent_data<BufTy>;
 
 } // namespace iobu
