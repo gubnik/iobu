@@ -106,59 +106,16 @@ template <read_buffer_sequence BufSeqTy> struct buffers_slice
 
     buffers_slice() noexcept = default;
 
-    buffers_slice (BufSeqTy const &bs, std::size_t offset,
+    buffers_slice (buffer_sequence_ref<BufSeqTy> bs, std::size_t offset,
                    std::size_t length = (std::numeric_limits<std::size_t>::max)()) noexcept
-        requires(not write_buffer_sequence<BufSeqTy>)
     {
         buf_begin = iobu::buffer_sequence_begin(bs);
         buf_end = iobu::buffer_sequence_end(bs);
-
-        std::size_t skip = offset;
-        while (buf_begin != buf_end)
-        {
-            std::size_t const sz = buffer_type(*buf_begin).size();
-            if (skip < sz)
-            {
-                skip_front = skip;
-                break;
-            }
-            skip -= sz;
-            ++buf_begin;
-        }
-
-        if (buf_begin == buf_end)
-            return;
-        if (length == (std::numeric_limits<std::size_t>::max)())
-            return;
-
-        std::size_t left = length;
-        auto cursor = buf_begin;
-        std::size_t cursor_front = skip_front;
-        while (cursor != buf_end && left > 0)
-        {
-            std::size_t const sz = buffer_type(*cursor).size();
-            std::size_t const avail = sz - cursor_front;
-            if (left <= avail)
-            {
-                skip_back = avail - left;
-                ++cursor;
-                buf_end = cursor;
-                return;
-            }
-            left -= avail;
-            ++cursor;
-            cursor_front = 0;
-        }
-        buf_end = cursor;
+        init(offset, length);
     }
 
-    buffers_slice (BufSeqTy &bs, std::size_t offset,
-                   std::size_t length = (std::numeric_limits<std::size_t>::max)()) noexcept
-        requires(write_buffer_sequence<BufSeqTy>)
+    auto init (std::size_t offset, std::size_t length = (std::numeric_limits<std::size_t>::max)())
     {
-        buf_begin = iobu::buffer_sequence_begin(bs);
-        buf_end = iobu::buffer_sequence_end(bs);
-
         std::size_t skip = offset;
         while (buf_begin != buf_end)
         {
@@ -220,5 +177,17 @@ template <read_buffer_sequence BufSeqTy> struct buffers_slice
     std::size_t skip_front = 0;
     std::size_t skip_back = 0;
 };
+
+template <read_buffer_sequence BufSeqTy>
+    requires(not write_buffer_sequence<BufSeqTy>)
+buffers_slice(BufSeqTy const &bs, std::size_t offset,
+              std::size_t length = (std::numeric_limits<std::size_t>::max)()) noexcept
+    -> buffers_slice<BufSeqTy>;
+
+template <read_buffer_sequence BufSeqTy>
+    requires(write_buffer_sequence<BufSeqTy>)
+buffers_slice(BufSeqTy &bs, std::size_t offset,
+              std::size_t length = (std::numeric_limits<std::size_t>::max)()) noexcept
+    -> buffers_slice<BufSeqTy>;
 
 } // namespace iobu

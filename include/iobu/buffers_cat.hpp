@@ -2,7 +2,6 @@
 
 #include "iobu/buffer_iterator.hpp"
 #include "iobu/buffer_ref.hpp"
-#include "iobu/buffer_type.hpp"
 #include "iobu/concepts/buffer_sequence.hpp"
 #include <concepts>
 #include <cstddef>
