@@ -27,7 +27,7 @@ int main (int argc, char **argv)
     std::size_t const n = iobu::bufcpy(cat, dest_1);
     std::println("Copied from cat: {}",
                  std::string_view{(char const *)dest_1.data(), dest_1.size()});
-    auto first_15 = iobu::buffers_slice(dest_1, 0, 17);
+    auto first_15 = iobu::buffers_slice(dest_1, 4, 15);
     static_assert(iobu::read_buffer_sequence<decltype(first_15)>);
     for (auto const rd_buf : first_15)
     {

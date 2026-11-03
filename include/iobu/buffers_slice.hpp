@@ -1,205 +1,224 @@
 #pragma once
 
 #include "iobu/buffer_iterator.hpp"
-#include "iobu/buffer_ref.hpp"
-#include "iobu/buffers_view.hpp"
+#include "iobu/buffer_type.hpp"
 #include "iobu/concepts/buffer_sequence.hpp"
+
+#include <cstddef>
+#include <iterator>
 #include <limits>
-#include <utility>
+#include <type_traits>
 
 namespace iobu
 {
 
-template <read_buffer_sequence RbBufSeqTy> struct buffers_slice final
+/**
+ * @brief A borrowed view over a byte sub-range of a buffer sequence.
+ *
+ * Credit: Steve Gerbino, the code is adapted from Boost.Capy's detail::slice_of type
+ * https://github.com/cppalliance/capy/blob/develop/include/boost/capy/detail/slice_of.hpp
+ */
+template <read_buffer_sequence BufSeqTy> struct buffers_slice
 {
-    using raw_iterator_type = decltype(read_buffers_begin(std::declval<RbBufSeqTy const &>()));
+    using buffer_type = iobu::buffer_ref_type<BufSeqTy>;
+    using iterator_type = decltype(iobu::buffer_sequence_begin<BufSeqTy>(
+        std::declval<buffer_sequence_ref<BufSeqTy>>()));
 
-    explicit buffers_slice (RbBufSeqTy const &buffers, std::size_t offset = 0,
-                            std::size_t length = std::numeric_limits<std::size_t>::max())
-        : m_view{buffers}, m_offset{offset}, m_length{length}
+  private:
+    static buffer_type adjust (buffer_type const &b, std::size_t front_n,
+                               std::size_t back_n) noexcept
     {
+        if constexpr (std::is_same_v<buffer_type, write_buffer_ref>)
+            return write_buffer_ref(static_cast<char *>(b.data()) + front_n,
+                                    b.size() - front_n - back_n);
+        else
+            return read_buffer_ref(static_cast<char const *>(b.data()) + front_n,
+                                   b.size() - front_n - back_n);
     }
 
-    explicit buffers_slice(RbBufSeqTy const &&buffers, std::size_t offset = 0,
-                           std::size_t length = std::numeric_limits<std::size_t>::max()) = delete;
-
-    struct slicing_iterator final
+  public:
+    struct const_iterator
     {
-        using value_type = read_buffer_ref;
-        using difference_type = std::iter_difference_t<raw_iterator_type>;
-        using reference = read_buffer_ref;
-        using pointer = void;
-        using iterator_concept = std::bidirectional_iterator_tag;
+        iterator_type cur{};
+        iterator_type anchor_first{};
+        iterator_type anchor_last{};
+        std::size_t skip_front = 0;
+        std::size_t skip_back = 0;
+
         using iterator_category = std::bidirectional_iterator_tag;
+        using value_type = buffer_type;
+        using difference_type = std::ptrdiff_t;
+        using pointer = value_type *;
+        using reference = value_type;
 
-        slicing_iterator() noexcept = default;
+        const_iterator() noexcept = default;
 
-        slicing_iterator (buffers_slice const *owner, std::size_t position) : slice{owner}
+        const_iterator (iterator_type cur, iterator_type anchor_first, iterator_type anchor_last,
+                        std::size_t front_skip, std::size_t back_skip) noexcept
+            : cur(cur), anchor_first(anchor_first), anchor_last(anchor_last),
+              skip_front(front_skip), skip_back(back_skip)
         {
-            set_at(position);
         }
 
-        auto operator*() const noexcept -> reference
+        bool operator==(const_iterator const &o) const noexcept
         {
-            read_buffer_ref const buffer = read_buffer_ref{*curr}.remove_prefix(curr_offset);
-            auto const available = slice->limit() - position;
-
-            if (buffer.size() <= available)
-            {
-                return read_buffer_ref{buffer};
-            }
-
-            return read_buffer_ref{buffer.data(), available};
+            return cur == o.cur;
         }
 
-        auto operator++() noexcept -> slicing_iterator &
+        bool operator!=(const_iterator const &o) const noexcept
         {
-            if (curr == slice->m_view.end())
-            {
-                position = slice->limit();
-                return *this;
-            }
+            return !(*this == o);
+        }
 
-            auto const buffer_start = position - curr_offset;
-            auto const next_position = buffer_start + read_buffer_ref{*curr}.size();
+        value_type operator*() const noexcept
+        {
+            buffer_type buf{*cur};
+            auto const front_n = (cur == anchor_first) ? skip_front : 0;
+            auto next = cur;
+            ++next;
+            auto const back_n = (next == anchor_last) ? skip_back : 0;
+            return adjust(buf, front_n, back_n);
+        }
 
-            set_at(std::min(next_position, slice->limit()));
-            if (next_position >= slice->limit())
-            {
-                curr = slice->m_view.end();
-                position = slice->limit();
-            }
+        const_iterator &operator++() noexcept
+        {
+            ++cur;
             return *this;
         }
-
-        auto operator++(int) noexcept -> slicing_iterator
+        const_iterator operator++(int) noexcept
         {
-            auto old = *this;
+            auto t = *this;
             ++*this;
-            return old;
+            return t;
         }
-
-        auto operator--() noexcept -> slicing_iterator &
+        const_iterator &operator--() noexcept
         {
-            auto it = slice->m_view.begin();
-            auto const end = slice->m_view.end();
-            std::size_t buffer_start = 0;
-
-            bool found = false;
-            raw_iterator_type previous{};
-            std::size_t previous_offset = 0;
-            std::size_t previous_position = 0;
-
-            while (it != end)
-            {
-                auto const size = read_buffer_ref{*it}.size();
-                auto const chunk_start = std::max(buffer_start, slice->m_offset);
-                auto const chunk_end = std::min(buffer_start + size, slice->limit());
-
-                if (chunk_start < chunk_end && chunk_start < position)
-                {
-                    found = true;
-                    previous = it;
-                    previous_offset = chunk_start - buffer_start;
-                    previous_position = chunk_start;
-                }
-
-                buffer_start += size;
-                ++it;
-            }
-
-            if (found)
-            {
-                curr = previous;
-                curr_offset = previous_offset;
-                position = previous_position;
-            }
-
+            --cur;
             return *this;
         }
-
-        auto operator--(int) noexcept -> slicing_iterator
+        const_iterator operator--(int) noexcept
         {
-            auto old = *this;
+            auto t = *this;
             --*this;
-            return old;
+            return t;
         }
-
-        friend bool operator==(slicing_iterator const &a, slicing_iterator const &b) noexcept
-        {
-            bool const res =
-                a.slice == b.slice && a.curr == b.curr && a.curr_offset == b.curr_offset &&
-                a.position == b.position &&
-                ((a.curr == a.slice->m_view.end()) and (b.curr == b.slice->m_view.end()));
-            return res;
-        }
-
-      private:
-        void set_at (std::size_t requested_position) noexcept
-        {
-            if (requested_position >= slice->limit())
-            {
-                curr = slice->m_view.end();
-                position = slice->limit();
-                return;
-            }
-
-            curr = slice->m_view.begin();
-            auto const end = slice->m_view.end();
-            std::size_t buffer_start = 0;
-
-            while (curr != end)
-            {
-                auto const size = read_buffer_ref{*curr}.size();
-
-                // Strict comparison makes an exact buffer boundary point to the
-                // next non-empty buffer.
-                if (requested_position >= buffer_start && requested_position - buffer_start < size)
-                {
-                    curr_offset = requested_position - buffer_start;
-                    position = requested_position;
-                    return;
-                }
-
-                buffer_start += size;
-                ++curr;
-            }
-
-            // Clamp positions past the actual data to the real sequence end.
-            curr_offset = 0;
-            position = buffer_start;
-        }
-
-        raw_iterator_type curr{};
-        buffers_slice const *slice{};
-        std::size_t curr_offset{0};
-        std::size_t position{0};
     };
 
-    auto limit () const noexcept -> std::size_t
+    buffers_slice() noexcept = default;
+
+    buffers_slice (BufSeqTy const &bs, std::size_t offset,
+                   std::size_t length = (std::numeric_limits<std::size_t>::max)()) noexcept
+        requires(not write_buffer_sequence<BufSeqTy>)
     {
-        if (m_length > std::numeric_limits<std::size_t>::max() - m_offset)
+        buf_begin = iobu::buffer_sequence_begin(bs);
+        buf_end = iobu::buffer_sequence_end(bs);
+
+        std::size_t skip = offset;
+        while (buf_begin != buf_end)
         {
-            return std::numeric_limits<std::size_t>::max();
+            std::size_t const sz = buffer_type(*buf_begin).size();
+            if (skip < sz)
+            {
+                skip_front = skip;
+                break;
+            }
+            skip -= sz;
+            ++buf_begin;
         }
 
-        return m_offset + m_length;
+        if (buf_begin == buf_end)
+            return;
+        if (length == (std::numeric_limits<std::size_t>::max)())
+            return;
+
+        std::size_t left = length;
+        auto cursor = buf_begin;
+        std::size_t cursor_front = skip_front;
+        while (cursor != buf_end && left > 0)
+        {
+            std::size_t const sz = buffer_type(*cursor).size();
+            std::size_t const avail = sz - cursor_front;
+            if (left <= avail)
+            {
+                skip_back = avail - left;
+                ++cursor;
+                buf_end = cursor;
+                return;
+            }
+            left -= avail;
+            ++cursor;
+            cursor_front = 0;
+        }
+        buf_end = cursor;
     }
 
-    auto begin () const noexcept -> slicing_iterator
+    buffers_slice (BufSeqTy &bs, std::size_t offset,
+                   std::size_t length = (std::numeric_limits<std::size_t>::max)()) noexcept
+        requires(write_buffer_sequence<BufSeqTy>)
     {
-        return slicing_iterator{this, m_offset};
+        buf_begin = iobu::buffer_sequence_begin(bs);
+        buf_end = iobu::buffer_sequence_end(bs);
+
+        std::size_t skip = offset;
+        while (buf_begin != buf_end)
+        {
+            std::size_t const sz = buffer_type(*buf_begin).size();
+            if (skip < sz)
+            {
+                skip_front = skip;
+                break;
+            }
+            skip -= sz;
+            ++buf_begin;
+        }
+
+        if (buf_begin == buf_end)
+            return;
+        if (length == (std::numeric_limits<std::size_t>::max)())
+            return;
+
+        std::size_t left = length;
+        auto cursor = buf_begin;
+        std::size_t cursor_front = skip_front;
+        while (cursor != buf_end && left > 0)
+        {
+            std::size_t const sz = buffer_type(*cursor).size();
+            std::size_t const avail = sz - cursor_front;
+            if (left <= avail)
+            {
+                skip_back = avail - left;
+                ++cursor;
+                buf_end = cursor;
+                return;
+            }
+            left -= avail;
+            ++cursor;
+            cursor_front = 0;
+        }
+        buf_end = cursor;
     }
 
-    auto end () const noexcept -> slicing_iterator
+    buffers_slice (iterator_type first, iterator_type last, std::size_t front_skip = 0,
+                   std::size_t back_skip = 0) noexcept
+        : buf_begin(first), buf_end(last), skip_front(front_skip), skip_back(back_skip)
     {
-        return slicing_iterator{this, limit()};
+    }
+
+    const_iterator begin () const noexcept
+    {
+        return const_iterator(buf_begin, buf_begin, buf_end, skip_front, skip_back);
+    }
+
+    const_iterator end () const noexcept
+    {
+        return const_iterator(buf_end, buf_begin, buf_end, skip_front, skip_back);
     }
 
   private:
-    buffers_view<RbBufSeqTy> m_view;
-    std::size_t m_offset{0};
-    std::size_t m_length{std::numeric_limits<std::size_t>::max()};
+    iterator_type buf_begin{};
+    iterator_type buf_end{};
+    std::size_t skip_front = 0;
+    std::size_t skip_back = 0;
 };
 
 } // namespace iobu

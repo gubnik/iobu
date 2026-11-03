@@ -16,9 +16,6 @@ struct read_buffer_ref final
     {
     }
 
-    template <read_buffer_compatible ReadBufTy>
-    constexpr read_buffer_ref(ReadBufTy const &&read_buffer) noexcept = delete;
-
     constexpr read_buffer_ref (void const *data, std::size_t size) noexcept
         : m_data{data}, m_size{size}
     {

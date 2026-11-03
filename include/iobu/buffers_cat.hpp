@@ -2,9 +2,12 @@
 
 #include "iobu/buffer_iterator.hpp"
 #include "iobu/buffer_ref.hpp"
+#include "iobu/buffer_type.hpp"
 #include "iobu/concepts/buffer_sequence.hpp"
+#include <concepts>
 #include <cstddef>
 #include <iterator>
+#include <type_traits>
 #include <utility>
 
 namespace iobu
@@ -13,13 +16,27 @@ namespace iobu
 template <read_buffer_sequence LeftBufSeqTy, read_buffer_sequence RightBufSeqTy>
 struct buffers_concatenation final
 {
-    using left_iterator_type = decltype(read_buffers_begin(std::declval<LeftBufSeqTy const &>()));
-    using right_iterator_type = decltype(read_buffers_begin(std::declval<RightBufSeqTy const &>()));
+    using left_iterator_type = decltype(buffer_sequence_begin<LeftBufSeqTy>(
+        std::declval<buffer_sequence_ref<LeftBufSeqTy>>()));
+    using right_iterator_type = decltype(buffer_sequence_begin<RightBufSeqTy>(
+        std::declval<buffer_sequence_ref<RightBufSeqTy>>()));
 
     struct common_iterator;
     using iterator_type = common_iterator;
 
+    using buffer_type = std::conditional_t<write_buffer_sequence<LeftBufSeqTy> and
+                                               write_buffer_sequence<RightBufSeqTy>,
+                                           write_buffer_ref, read_buffer_ref>;
+
+    buffers_concatenation (LeftBufSeqTy &left_seq, RightBufSeqTy &right_seq)
+        requires(std::same_as<buffer_type, write_buffer_ref>)
+        : m_left_begin{write_buffers_begin(left_seq)}, m_left_end{write_buffers_end(left_seq)},
+          m_right_begin{write_buffers_begin(right_seq)}, m_right_end{write_buffers_end(right_seq)}
+    {
+    }
+
     buffers_concatenation (LeftBufSeqTy const &left_seq, RightBufSeqTy const &right_seq)
+        requires(not std::same_as<buffer_type, write_buffer_ref>)
         : m_left_begin{read_buffers_begin(left_seq)}, m_left_end{read_buffers_end(left_seq)},
           m_right_begin{read_buffers_begin(right_seq)}, m_right_end{read_buffers_end(right_seq)}
     {
@@ -29,7 +46,7 @@ struct buffers_concatenation final
     {
         using iterator_category = std::bidirectional_iterator_tag;
         using iterator_concept = std::bidirectional_iterator_tag;
-        using value_type = read_buffer_ref;
+        using value_type = buffer_type;
         using difference_type = std::ptrdiff_t;
         using reference = value_type;
         using pointer = void;
